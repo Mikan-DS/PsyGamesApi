@@ -1,4 +1,6 @@
 import datetime
+import json
+import typing
 
 from flask import Flask, request, jsonify, abort, render_template
 from flask_sqlalchemy import SQLAlchemy
@@ -7,6 +9,9 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///PsyTestApi.db'
 db = SQLAlchemy(app)
 
+projects = {}
+with open('projects.json', "r", encoding="UTF-8") as file:
+    projects.update(json.load(file))
 
 
 class TestResult(db.Model):
@@ -23,7 +28,7 @@ class TestResult(db.Model):
         self.name = name
         self.ip = ip
         self.duration = duration
-        self.parameters = self.create_parameters(result_parameters)
+        self.parameters: typing.Collection[TestResultParameter] = self.create_parameters(result_parameters)
 
     def create_parameters(self, result_parameters):
         parameters = []
@@ -47,7 +52,7 @@ class TestResult(db.Model):
             'name': self.name,
             'ip': self.ip,
             'end_time': self.end_time,
-            'duration': self.duration,
+            'duration': str(datetime.timedelta(seconds=self.duration)),
             'result_parameters': {
                 parameter.name: parameter.value for parameter in self.parameters
             }
@@ -68,6 +73,7 @@ class TestResultParameter(db.Model):
     def __repr__(self):
         return '<TestResultParameter %r>' % self.name
 
+
 # @app.route('/', methods=['GET'])
 # def index():
 #     return "Hello World!"
@@ -75,13 +81,19 @@ class TestResultParameter(db.Model):
 
 @app.route('/api/add-result', methods=['POST'])
 def add_result():
-
     result = dict(request.args)
     result["ip"] = request.remote_addr
     result["duration"] = int(result["duration"])
 
     try:
+
+        if result.get("project_name") not in projects.keys():
+            abort(400, 'Такого теста не существует')
         ts = TestResult(**result)
+
+        if set(map(lambda x: x.name, ts.parameters)) != set(projects[result.get("project_name")]):
+            abort(400, 'Неверные результаты теста')
+
         db.session.add(ts)
         db.session.commit()
 
@@ -92,21 +104,35 @@ def add_result():
 
         abort(400, 'Неверный результат теста')
 
-@app.route('/admin/view-results', methods=['GET'])
-def psytest_view_results():
 
+@app.route('/admin/view-results/all', methods=['GET'])
+def psytest_view_results_all():
     test_results = TestResult.query.all()
     data = {}
     for result in test_results:
         if result.project_name not in data:
             data[result.project_name] = []
         data[result.project_name].append(result.as_dict())
-    return render_template('view-test-results.html', data=data)
+    return render_template('view-test-results-all.html', data=data)
+
+
+@app.route('/admin/view-results/<string:project_name>', methods=['GET'])
+def psytest_view_results(project_name):
+    if project_name not in projects.keys():
+        abort(404, 'Такой проект не найден!')
+    project_parameters = projects[project_name]
+    results = tuple(map(lambda x: x.as_dict(), TestResult.query.filter(project_name == project_name)))
+    for i, result in enumerate(results):
+        result['index'] = i
+    return render_template('view-test-results.html',
+                           project_name=project_name,
+                           projects=projects,
+                           results=results
+                           )
 
 
 with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
-
     app.run(debug=True)
