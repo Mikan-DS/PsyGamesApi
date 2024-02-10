@@ -4,7 +4,7 @@
     <title>Список проектов</title>
 </head>
 <body>
-<h1>Admin View Results</h1>
+<h1>Результаты прохождения теста</h1>
   <form method="POST" action="">
     {% for project in projects.keys() %}
       <h2><a href="{{ url_for('psytest_view_results', project_name=project) }}">Проект {{ project }}</a></h2>
@@ -28,7 +28,7 @@
             {% if result['project_name'] == project %}
               <tr>
                 <td><input type="checkbox" name="{{ result['id'] }}"></td>
-                <td>{{ result['index'] }}</td>
+                <td>{{ loop.index }}</td>
                 <td>{{ result['name'] }}</td>
                 <td>{{ result['ip'] }}</td>
                 <td>{{ result['end_time'] }}</td>

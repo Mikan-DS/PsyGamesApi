@@ -121,9 +121,7 @@ def psytest_view_results(project_name):
     if project_name not in projects.keys():
         abort(404, 'Такой проект не найден!')
     project_parameters = projects[project_name]
-    results = tuple(map(lambda x: x.as_dict(), TestResult.query.filter(project_name == project_name)))
-    for i, result in enumerate(results):
-        result['index'] = i
+    results = tuple(map(lambda x: x.as_dict(), TestResult.query.filter(TestResult.project_name == project_name)))
     return render_template('view-test-results.html',
                            project_name=project_name,
                            projects=projects,
