@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Вход</title>
+</head>
+<body>
+{% with messages = get_flashed_messages() %}
+   {% if messages %}
+      {% for message in messages %}
+         <script>
+            alert("{{ message }}")
+         </script>
+      {% endfor %}
+   {% endif %}
+{% endwith %}
+{% if logged_in %}
+    Вы уже вошли
+    <a href="{{ url_for("logout") }}">Выйти</a>
+    {% else %}
+    <h1>Нужен пароль от API для продолжения</h1>
+    <form action={{ url_for("login") }} method="post">
+        {{ form.hidden_tag() }}
+        <p>
+            Пароль:
+
+            {{ form.password() }}
+        </p>
+        <p><input type="submit" value="Вход"></p>
+    </form>
+{% endif %}
+</body>
+</html>

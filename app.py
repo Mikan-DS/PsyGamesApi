@@ -2,21 +2,45 @@ import datetime
 import json
 import typing
 
+import flask
 from flask import Flask, request, jsonify, abort, render_template, redirect, url_for
+from flask_login import UserMixin, LoginManager, login_user, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
-from wtforms.fields.simple import SubmitField
-
-
+from werkzeug.security import generate_password_hash, check_password_hash
+from wtforms.fields.simple import SubmitField, PasswordField
+from wtforms.validators import InputRequired
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "U9xK8vQ6uZ4rF2xS6tB3vY5nD9wE6zL0"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///PsyTestApi.db'
 db = SQLAlchemy(app)
+login_manager = LoginManager(app)
 
 projects = {}
 with open('projects.json', "r", encoding="UTF-8") as file:
     projects.update(json.load(file))
+
+
+class User(UserMixin, db.Model):
+    """
+    На данном этапе нам необходим лишь один пользователь, но в целях масштабируемости поднимает таблицу
+    """
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), unique=True, index=True)
+    password_hash = db.Column(db.String(128))
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 
 class TestResult(db.Model):
@@ -154,6 +178,33 @@ def delete_results(project_name):
         return "Результаты удалены успешно", 200
 
 
+class LoginForm(FlaskForm):
+    password = PasswordField('Password', validators=[InputRequired()])
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username="admin").first()
+
+        if not user:
+            user = User()
+            user.username = "admin"
+            user.set_password("3^D9fjL!hZ#67Bv$8Yc0^Aa@9Y&*V4s5GhJ7K8#2M9^NgQrT4!")
+            db.session.add(user)
+            db.session.commit()
+
+        if user is not None and user.check_password(form.password.data):
+            flask.flash('Вы вошли как админ')
+            login_user(user, remember=True)
+            return redirect(url_for('psytest_view_results', project_name=tuple(projects.keys())[0]))
+    return render_template('login.html', form=form, logged_in=current_user.is_authenticated)
+
+@app.route('/admin/logout')
+def logout():
+    logout_user()
+    flask.flash('Вы вышли из аккаунта')
+    return redirect(url_for('login'))
 
 with app.app_context():
     db.create_all()

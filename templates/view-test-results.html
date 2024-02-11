@@ -9,10 +9,7 @@
         }
 
         table {
-            {#width: 100%;#}
             border-spacing: 0;
-            {#border-left: 1px solid black;#}
-            {#border-right: 1px solid black;#}
         }
 
         td {
@@ -33,6 +30,15 @@
     </style>
 </head>
 <body>
+{% with messages = get_flashed_messages() %}
+   {% if messages %}
+      {% for message in messages %}
+         <script>
+            alert("{{ message }}")
+         </script>
+      {% endfor %}
+   {% endif %}
+{% endwith %}
 <h1>Результаты прохождения теста</h1>
 Выбрать проект:
 <select onchange="location = this.value;">
