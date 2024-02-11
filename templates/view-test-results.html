@@ -2,16 +2,48 @@
 <html>
 <head>
     <title>Список проектов</title>
+
+    <style>
+        .btn-danger {
+            background-color: #e58b8b;
+        }
+
+        table {
+            {#width: 100%;#}
+            border-spacing: 0;
+            {#border-left: 1px solid black;#}
+            {#border-right: 1px solid black;#}
+        }
+
+        td {
+            border-left: 1px solid black;
+            border-right: 1px solid black;
+            align-self: center;
+            width: auto;
+            padding-left: 1em;
+            padding-right: 1em;
+            text-align: center;
+        }
+
+        thead>tr>th{
+            border-left: 1px solid black;
+            border-right: 1px solid black;
+            border-bottom: 1px solid black;
+        }
+    </style>
 </head>
 <body>
 <h1>Результаты прохождения теста</h1>
-    <select onchange="location = this.value;">
+Выбрать проект:
+<select onchange="location = this.value;">
     {% for project in projects.keys() %}
        <option value="{{ url_for('psytest_view_results', project_name=project) }}" {% if project == project_name %} selected {% endif %}>
           {{ project }}
        </option>
     {% endfor %}
     </select>
+
+{% if results %}
 
   <form method="POST" action="{{ url_for('delete_results', project_name=project_name)}}" enctype="application/x-www-form-urlencoded">
         {{ form.csrf_token }}
@@ -49,5 +81,11 @@
       </table>
 
   </form>
+{% else %}
+    <h1>
+    На данный момент нет данных по результатам по проекту {{ project_name }}
+    </h1>
+{% endif %}
+
 </body>
 </html>
