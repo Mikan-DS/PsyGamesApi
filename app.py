@@ -20,6 +20,11 @@ PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 def get_file(filename: str) -> str:
     return os.path.join(PROJECT_PATH, filename)
 
+def load_projects():
+    projects.clear()
+    with open(get_file('projects.json'), "r", encoding="UTF-8") as file:
+        projects.update(json.load(file))
+
 config = {}
 with open(get_file('api_config.json'), "r", encoding="UTF-8") as file:
     config.update(json.load(file))
@@ -31,8 +36,7 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 
 projects = {}
-with open(get_file('projects.json'), "r", encoding="UTF-8") as file:
-    projects.update(json.load(file))
+load_projects()
 
 
 class User(UserMixin, db.Model):
@@ -300,6 +304,11 @@ def download_results_page(project_name):
 
     # Отправляем файл пользователю
     return send_file(stream, as_attachment=True, download_name='report.xlsx')
+
+@app.route("/api/update-projects")
+def update_projects():
+    load_projects()
+    return f"<h1>Проекты обновлены {str(projects)}</h1>"
 
 @app.route("/")
 def index():
