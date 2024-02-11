@@ -1,0 +1,7 @@
+{
+  "FLASK_SECRET_KEY": "FLASK_SECRET_KEY",
+  "SQLALCHEMY_DATABASE_URI": "sqlite:///PsyTestApi.db",
+  "ADMIN_DEFAULT_PASSWORD": "$tr0ngP@55w0rd"
+
+
+}

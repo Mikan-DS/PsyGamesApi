@@ -39,7 +39,11 @@
       {% endfor %}
    {% endif %}
 {% endwith %}
-<h1>Результаты прохождения теста</h1>
+<h1>Результаты прохождения теста <form action="{{ url_for("download_results_book") }}" method="post">
+    <button type="submit">Скачать всё</button>
+</form>
+</h1>
+
 Выбрать проект:
 <select onchange="location = this.value;">
     {% for project in projects.keys() %}
@@ -49,11 +53,16 @@
     {% endfor %}
     </select>
 
+<form action="{{ url_for("download_results_page", project_name=project_name) }}" method="post">
+    <button type="submit">Скачать результаты проекта</button>
+</form>
+
 {% if results %}
 
   <form method="POST" action="{{ url_for('delete_results', project_name=project_name)}}" enctype="application/x-www-form-urlencoded">
         {{ form.csrf_token }}
       <h2>Проект {{ project_name }} <button type="submit" class="btn btn-danger">Удалить</button></h2>
+
 
   <table>
         <thead>

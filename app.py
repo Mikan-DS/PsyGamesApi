@@ -13,9 +13,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms.fields.simple import SubmitField, PasswordField
 from wtforms.validators import InputRequired
 
+
+config = {}
+with open('api_config.json', "r", encoding="UTF-8") as file:
+    config.update(json.load(file))
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = "U9xK8vQ6uZ4rF2xS6tB3vY5nD9wE6zL0"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///PsyTestApi.db'
+app.config['SECRET_KEY'] = config["FLASK_SECRET_KEY"]
+app.config['SQLALCHEMY_DATABASE_URI'] = config["SQLALCHEMY_DATABASE_URI"]
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 
@@ -104,13 +109,15 @@ class TestResultParameter(db.Model):
     def __repr__(self):
         return '<TestResultParameter %r>' % self.name
 
-@app.route('/api/add-result', methods=['POST'])
+@app.route('/api/add-result', methods=['POST', "OPTIONS"])
 def add_result():
+
     result = dict(request.args)
-    result["ip"] = request.remote_addr
-    result["duration"] = int(result["duration"])
+
 
     try:
+        result["ip"] = request.remote_addr
+        result["duration"] = int(result["duration"])
 
         if result.get("project_name") not in projects.keys():
             abort(400, 'Такого теста не существует')
@@ -122,7 +129,7 @@ def add_result():
         db.session.add(ts)
         db.session.commit()
 
-        return jsonify(ts.as_dict())
+        return "ВСЕ ОК", 200
 
     except Exception as e:
 
@@ -191,7 +198,7 @@ def login():
         if not user:
             user = User()
             user.username = "admin"
-            user.set_password("3^D9fjL!hZ#67Bv$8Yc0^Aa@9Y&*V4s5GhJ7K8#2M9^NgQrT4!")
+            user.set_password(config["ADMIN_DEFAULT_PASSWORD"])
             db.session.add(user)
             db.session.commit()
 
@@ -288,9 +295,9 @@ def download_results_page(project_name):
     # Отправляем файл пользователю
     return send_file(stream, as_attachment=True, download_name='report.xlsx')
 
-
-with app.app_context():
-    db.create_all()
+def create_db_tables():
+    with app.app_context():
+        db.create_all()
 
 if __name__ == '__main__':
     app.run(debug=True)
