@@ -139,7 +139,7 @@ def add_result():
         db.session.add(ts)
         db.session.commit()
 
-        return "ВСЕ ОК", 200
+        return jsonify(ts.as_dict())
 
     except Exception as e:
 
