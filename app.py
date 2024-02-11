@@ -2,10 +2,15 @@ import datetime
 import json
 import typing
 
-from flask import Flask, request, jsonify, abort, render_template
+from flask import Flask, request, jsonify, abort, render_template, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import FlaskForm
+from wtforms.fields.simple import SubmitField
+
+
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = "U9xK8vQ6uZ4rF2xS6tB3vY5nD9wE6zL0"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///PsyTestApi.db'
 db = SQLAlchemy(app)
 
@@ -21,7 +26,7 @@ class TestResult(db.Model):
     ip = db.Column(db.String(80), nullable=False)
     end_time = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     duration = db.Column(db.Integer, nullable=False)
-    parameters = db.relationship('TestResultParameter', backref='test_result', lazy=True)
+    parameters = db.relationship('TestResultParameter', backref='test_result', lazy=True, cascade="all, delete-orphan")
 
     def __init__(self, project_name, name, ip, duration, result_parameters):
         self.project_name = project_name
@@ -61,7 +66,7 @@ class TestResult(db.Model):
 
 class TestResultParameter(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    test_result_id = db.Column(db.Integer, db.ForeignKey('test_result.id'), nullable=False)
+    test_result_id = db.Column(db.Integer, db.ForeignKey('test_result.id', ondelete='CASCADE'), nullable=False)
     name = db.Column(db.String(80), nullable=False)
     value = db.Column(db.String(500), nullable=False)
 
@@ -72,12 +77,6 @@ class TestResultParameter(db.Model):
 
     def __repr__(self):
         return '<TestResultParameter %r>' % self.name
-
-
-# @app.route('/', methods=['GET'])
-# def index():
-#     return "Hello World!"
-
 
 @app.route('/api/add-result', methods=['POST'])
 def add_result():
@@ -104,29 +103,56 @@ def add_result():
 
         abort(400, 'Неверный результат теста')
 
-
-@app.route('/admin/view-results/all', methods=['GET'])
-def psytest_view_results_all():
-    test_results = TestResult.query.all()
-    data = {}
-    for result in test_results:
-        if result.project_name not in data:
-            data[result.project_name] = []
-        data[result.project_name].append(result.as_dict())
-    return render_template('view-test-results-all.html', data=data)
-
+class DeleteResultsForm(FlaskForm):
+    submit = SubmitField('Удалить')
 
 @app.route('/admin/view-results/<string:project_name>', methods=['GET'])
 def psytest_view_results(project_name):
+
+
+
     if project_name not in projects.keys():
         abort(404, 'Такой проект не найден!')
+
+    delete_results_form = DeleteResultsForm()
+
     project_parameters = projects[project_name]
-    results = tuple(map(lambda x: x.as_dict(), TestResult.query.filter(TestResult.project_name == project_name)))
+    results = tuple(
+        map(lambda x: x.as_dict(),
+            TestResult.query.filter(TestResult.project_name == project_name).order_by(TestResult.end_time.desc())
+            )
+    )
     return render_template('view-test-results.html',
                            project_name=project_name,
                            projects=projects,
-                           results=results
+                           results=results,
+                           form=delete_results_form
                            )
+
+@app.route('/api/results/<string:project_name>/delete', methods=['POST'])
+def delete_results(project_name):
+    delete_results_form = DeleteResultsForm()
+
+    if delete_results_form.validate_on_submit():
+        print(dict(request.form))
+        must_be_removed = dict(request.form)
+        try:
+            del must_be_removed["csrf_token"]
+            must_be_removed = [int(x) for x in must_be_removed.keys()]
+            TestResult.query.filter(TestResult.id.in_(must_be_removed)).delete()
+            db.session.commit()
+        except Exception as e:
+            if project_name:
+                return redirect(url_for("psytest_view_results", project_name=project_name))
+
+            else:
+                return "Произошла ошибка", 500
+    if project_name:
+        return redirect(url_for("psytest_view_results", project_name=project_name))
+
+    else:
+        return "Результаты удалены успешно", 200
+
 
 
 with app.app_context():

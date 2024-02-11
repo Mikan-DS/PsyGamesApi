@@ -5,27 +5,34 @@
 </head>
 <body>
 <h1>Результаты прохождения теста</h1>
-  <form method="POST" action="">
+    <select onchange="location = this.value;">
     {% for project in projects.keys() %}
-      <h2><a href="{{ url_for('psytest_view_results', project_name=project) }}">Проект {{ project }}</a></h2>
-        <button type="submit" class="btn btn-danger">Delete</button>
-      <table>
+       <option value="{{ url_for('psytest_view_results', project_name=project) }}" {% if project == project_name %} selected {% endif %}>
+          {{ project }}
+       </option>
+    {% endfor %}
+    </select>
+
+  <form method="POST" action="{{ url_for('delete_results', project_name=project_name)}}" enctype="application/x-www-form-urlencoded">
+        {{ form.csrf_token }}
+      <h2>Проект {{ project_name }} <button type="submit" class="btn btn-danger">Удалить</button></h2>
+
+  <table>
         <thead>
           <tr>
             <th></th>
             <th>#</th>
-            <th>Name</th>
+            <th>Имя</th>
             <th>IP</th>
-            <th>End Time</th>
-            <th>Duration</th>
-            {% for parameter in projects[project] %}
+            <th>Время отправки</th>
+            <th>Сколько времени заняло</th>
+            {% for parameter in projects[project_name] %}
               <th>{{ parameter }}</th>
             {% endfor %}
           </tr>
         </thead>
         <tbody>
           {% for result in results %}
-            {% if result['project_name'] == project %}
               <tr>
                 <td><input type="checkbox" name="{{ result['id'] }}"></td>
                 <td>{{ loop.index }}</td>
@@ -37,11 +44,9 @@
                   <td>{{ value }}</td>
                 {% endfor %}
               </tr>
-            {% endif %}
           {% endfor %}
         </tbody>
       </table>
-    {% endfor %}
 
   </form>
 </body>
