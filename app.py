@@ -4,9 +4,8 @@ import json
 import os
 import typing
 
-import flask
-from flask import Flask, request, jsonify, abort, render_template, redirect, url_for, send_file
-from flask_login import UserMixin, LoginManager, login_user, logout_user, current_user
+from flask import Flask, request, jsonify, abort, render_template, redirect, url_for, send_file, flash
+from flask_login import UserMixin, LoginManager, login_user, logout_user, current_user, login_required
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from openpyxl.workbook import Workbook
@@ -150,8 +149,11 @@ class DeleteResultsForm(FlaskForm):
     submit = SubmitField('Удалить')
 
 @app.route('/admin/view-results/<string:project_name>', methods=['GET'])
+# @login_required
 def psytest_view_results(project_name):
 
+    if not current_user.is_authenticated:
+        return redirect(url_for('login'))
 
 
     if project_name not in projects.keys():
@@ -214,7 +216,7 @@ def login():
             db.session.commit()
 
         if user is not None and user.check_password(form.password.data):
-            flask.flash('Вы вошли как админ')
+            flash('Вы вошли как админ')
             login_user(user, remember=True)
             return redirect(url_for('psytest_view_results', project_name=tuple(projects.keys())[0]))
     return render_template('login.html', form=form, logged_in=current_user.is_authenticated)
@@ -222,7 +224,7 @@ def login():
 @app.route('/admin/logout')
 def logout():
     logout_user()
-    flask.flash('Вы вышли из аккаунта')
+    flash('Вы вышли из аккаунта')
     return redirect(url_for('login'))
 
 
