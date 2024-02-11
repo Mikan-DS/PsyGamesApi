@@ -78,7 +78,7 @@ class TestResult(db.Model):
 
     def create_parameters(self, result_parameters):
         parameters = []
-        pairs = result_parameters.split(';')
+        pairs = result_parameters.split(',')
         for pair in pairs:
             pair = pair.strip()
             if not pair:
@@ -144,11 +144,8 @@ def add_result():
     except Exception as e:
         import traceback
 
-        # abort(400, f'Неверный результат теста {repr(e)}<br>'+traceback.format_exc().replace('\n', '<br>')+f"<br>{result}")
-        return jsonify({
-            "r1": dict(request.args)
+        abort(400, 'Неверный результат теста ')
 
-        })
 class DeleteResultsForm(FlaskForm):
     submit = SubmitField('Удалить')
 
