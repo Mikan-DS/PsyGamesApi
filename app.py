@@ -19,6 +19,15 @@ PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 def get_file(filename: str) -> str:
     return os.path.join(PROJECT_PATH, filename)
 
+def add_traceback():
+    import traceback
+    mode = "a"
+    if not os.path.exists('logs.txt'):
+        mode = "w"
+
+    with open('logs.txt', mode) as file:
+        file.write("-"*40 + "\n" + traceback.format_exc())
+
 def load_projects():
     projects.clear()
     with open(get_file('projects.json'), "r", encoding="UTF-8") as file:
@@ -204,22 +213,26 @@ class LoginForm(FlaskForm):
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username="admin").first()
+    try:
+        form = LoginForm()
+        if form.validate_on_submit():
+            user = User.query.filter_by(username="admin").first()
 
-        if not user:
-            user = User()
-            user.username = "admin"
-            user.set_password(config["ADMIN_DEFAULT_PASSWORD"])
-            db.session.add(user)
-            db.session.commit()
+            if not user:
+                user = User()
+                user.username = "admin"
+                user.set_password(config["ADMIN_DEFAULT_PASSWORD"])
+                db.session.add(user)
+                db.session.commit()
 
-        if user is not None and user.check_password(form.password.data):
-            flash('Вы вошли как админ')
-            login_user(user, remember=True)
-            return redirect(url_for('psytest_view_results', project_name=tuple(projects.keys())[0]))
-    return render_template('login.html', form=form, logged_in=current_user.is_authenticated)
+            if user is not None and user.check_password(form.password.data):
+                flash('Вы вошли как админ')
+                login_user(user, remember=True)
+                return redirect(url_for('psytest_view_results', project_name=tuple(projects.keys())[0]))
+        return render_template('login.html', form=form, logged_in=current_user.is_authenticated)
+    except Exception as e:
+        add_traceback()
+        abort(500, "Произошла ошибка")
 
 @app.route('/admin/logout')
 def logout():
