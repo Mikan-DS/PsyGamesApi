@@ -295,9 +295,13 @@ def download_results_page(project_name):
     # Отправляем файл пользователю
     return send_file(stream, as_attachment=True, download_name='report.xlsx')
 
+@app.route("/")
+def index():
+   return "<h1>API работает</h1>"
+
 def create_db_tables():
     with app.app_context():
         db.create_all()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0')
