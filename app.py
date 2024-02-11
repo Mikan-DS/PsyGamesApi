@@ -144,7 +144,7 @@ def add_result():
     except Exception as e:
         import traceback
 
-        abort(400, f'Неверный результат теста {repr(e)}<p/>'+traceback.format_exc().replace('\n', '<p/>'))
+        abort(400, f'Неверный результат теста {repr(e)}<br>'+traceback.format_exc().replace('\n', '<br>')+f"<br>{result}")
 
 class DeleteResultsForm(FlaskForm):
     submit = SubmitField('Удалить')
