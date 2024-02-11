@@ -142,8 +142,9 @@ def add_result():
         return jsonify(ts.as_dict())
 
     except Exception as e:
+        import traceback
 
-        abort(400, f'Неверный результат теста {repr(e)}')
+        abort(400, f'Неверный результат теста {repr(e)}<p/>'+traceback.format_exc().replace('\n', '<p/>'))
 
 class DeleteResultsForm(FlaskForm):
     submit = SubmitField('Удалить')
