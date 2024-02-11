@@ -22,10 +22,10 @@ def get_file(filename: str) -> str:
 def add_traceback():
     import traceback
     mode = "a"
-    if not os.path.exists('logs.txt'):
+    if not os.path.exists(get_file('logs.txt')):
         mode = "w"
 
-    with open('logs.txt', mode) as file:
+    with open(get_file('logs.txt'), mode) as file:
         file.write("-"*40 + "\n" + traceback.format_exc())
 
 def load_projects():
