@@ -1,12 +1,14 @@
 import datetime
+import io
 import json
 import typing
 
 import flask
-from flask import Flask, request, jsonify, abort, render_template, redirect, url_for
+from flask import Flask, request, jsonify, abort, render_template, redirect, url_for, send_file
 from flask_login import UserMixin, LoginManager, login_user, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
+from openpyxl.workbook import Workbook
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms.fields.simple import SubmitField, PasswordField
 from wtforms.validators import InputRequired
@@ -123,7 +125,6 @@ def add_result():
         return jsonify(ts.as_dict())
 
     except Exception as e:
-        raise e
 
         abort(400, 'Неверный результат теста')
 
@@ -205,6 +206,88 @@ def logout():
     logout_user()
     flask.flash('Вы вышли из аккаунта')
     return redirect(url_for('login'))
+
+
+
+
+def create_excel_result_page(wb: Workbook=None, project_name: str = None):
+    # Получаем все результаты тестов для данного проекта
+    test_results = TestResult.query.filter(TestResult.project_name == project_name).all()
+
+    # Создаем новую книгу Excel
+    if not wb:
+        wb = Workbook()
+        wb.remove(wb.active)
+
+    # Создаем новую страницу с названием project_name
+    sheet = wb.create_sheet(title=project_name)
+
+    # Создаем заголовки для столбцов
+    headers = ['Имя', 'IP', 'Время отправки', 'Время прохождения']
+    # Добавим заголовки для параметров
+    parameter_names = set()
+    for test_result in test_results:
+        parameter_names.update(parameter.name for parameter in test_result.parameters)
+    headers.extend(sorted(parameter_names))
+
+    sheet.freeze_panes = 'A2'
+
+    # Заполняем заголовки в первой строке
+    for col, header in enumerate(headers, start=1):
+        sheet.cell(row=1, column=col, value=header)
+
+    # Заполняем данные в таблице
+    for row, test_result in enumerate(test_results, start=2):
+        data = [test_result.name, test_result.ip, test_result.end_time, str(datetime.timedelta(seconds=test_result.duration))]
+        data.extend(parameter.value for parameter in sorted(test_result.parameters, key=lambda p: p.name))
+        for col, value in enumerate(data, start=1):
+            sheet.cell(row=row, column=col, value=value)
+            if col == 4:
+                sheet.cell(row=row, column=col).number_format = 'HH:MM:SS'
+
+    # Возвращаем страницу
+    return wb
+
+def create_excel_results_book():
+    # Создаем новую книгу Excel
+    wb = Workbook()
+
+    # Удаляем автоматически созданную страницу
+    wb.remove(wb.active)
+
+    # Для каждого проекта в словаре создаем новую страницу
+    for project_name in projects.keys():
+        create_excel_result_page(wb, project_name)
+
+    # Возвращаем книгу
+    return wb
+
+@app.route('/api/download', methods=['POST', 'GET'])
+def download_results_book():
+    # Создаем новую книгу Excel
+    wb = create_excel_results_book()
+
+    # Сохраняем данные в поток
+    stream = io.BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+
+    # Отправляем файл пользователю
+    return send_file(stream, as_attachment=True, download_name='report.xlsx')
+
+@app.route('/api/download/<string:project_name>', methods=['POST', 'GET'])
+def download_results_page(project_name):
+    # Создаем новую книгу Excel
+    wb = create_excel_result_page(project_name=project_name)
+
+    # Сохраняем данные в поток
+    stream = io.BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+
+    # Отправляем файл пользователю
+    return send_file(stream, as_attachment=True, download_name='report.xlsx')
+
 
 with app.app_context():
     db.create_all()
