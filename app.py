@@ -143,7 +143,7 @@ def add_result():
 
     except Exception as e:
 
-        abort(400, 'Неверный результат теста')
+        abort(400, f'Неверный результат теста {repr(e)}')
 
 class DeleteResultsForm(FlaskForm):
     submit = SubmitField('Удалить')
