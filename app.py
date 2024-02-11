@@ -1,6 +1,7 @@
 import datetime
 import io
 import json
+import os
 import typing
 
 import flask
@@ -14,8 +15,13 @@ from wtforms.fields.simple import SubmitField, PasswordField
 from wtforms.validators import InputRequired
 
 
+PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+
+def get_file(filename: str) -> str:
+    return os.path.join(PROJECT_PATH, filename)
+
 config = {}
-with open('api_config.json', "r", encoding="UTF-8") as file:
+with open(get_file('api_config.json'), "r", encoding="UTF-8") as file:
     config.update(json.load(file))
 
 app = Flask(__name__)
@@ -25,7 +31,7 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 
 projects = {}
-with open('projects.json', "r", encoding="UTF-8") as file:
+with open(get_file('projects.json'), "r", encoding="UTF-8") as file:
     projects.update(json.load(file))
 
 
