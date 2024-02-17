@@ -54,7 +54,7 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, index=True)
-    password_hash = db.Column(db.String(128))
+    password_hash = db.Column(db.String(256))
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -158,24 +158,29 @@ class DeleteResultsForm(FlaskForm):
     submit = SubmitField('Удалить')
 
 @app.route('/admin/view-results/<string:project_name>', methods=['GET'])
+@app.route('/admin/view-results/', methods=['GET'])
 # @login_required
-def psytest_view_results(project_name):
+def psytest_view_results(project_name=None):
 
     if not current_user.is_authenticated:
         return redirect(url_for('login'))
 
 
-    if project_name not in projects.keys():
-        abort(404, 'Такой проект не найден!')
+    if project_name and project_name not in projects.keys():
+        # abort(404, 'Такой проект не найден! <a>')
+        return redirect(url_for('psytest_view_results'))
 
     delete_results_form = DeleteResultsForm()
 
-    project_parameters = projects[project_name]
-    results = tuple(
-        map(lambda x: x.as_dict(),
-            TestResult.query.filter(TestResult.project_name == project_name).order_by(TestResult.end_time.desc())
-            )
-    )
+    # project_parameters = projects[project_name]
+    results = ()
+
+    if project_name:
+        results = tuple(
+            map(lambda x: x.as_dict(),
+                TestResult.query.filter(TestResult.project_name == project_name).order_by(TestResult.end_time.desc())
+                )
+        )
     return render_template('view-test-results.html',
                            project_name=project_name,
                            projects=projects,
@@ -185,6 +190,10 @@ def psytest_view_results(project_name):
 
 @app.route('/api/results/<string:project_name>/delete', methods=['POST'])
 def delete_results(project_name):
+
+    if not current_user.is_authenticated:
+        return redirect(url_for('login'))
+
     delete_results_form = DeleteResultsForm()
 
     if delete_results_form.validate_on_submit():
@@ -259,15 +268,16 @@ def create_excel_result_page(wb: Workbook=None, project_name: str = None):
     headers = ['Имя', 'IP', 'Время отправки', 'Время прохождения']
     # Добавим заголовки для параметров
     parameter_names = set()
-    for test_result in test_results:
-        parameter_names.update(parameter.name for parameter in test_result.parameters)
+    parameter_names.update(projects[project_name])
     headers.extend(sorted(parameter_names))
 
     sheet.freeze_panes = 'A2'
 
     # Заполняем заголовки в первой строке
     for col, header in enumerate(headers, start=1):
-        sheet.cell(row=1, column=col, value=header)
+        cell = sheet.cell(row=1, column=col, value=header)
+        sheet.column_dimensions[cell.column_letter].width = len(header)+6
+
 
     # Заполняем данные в таблице
     for row, test_result in enumerate(test_results, start=2):
@@ -297,6 +307,10 @@ def create_excel_results_book():
 
 @app.route('/api/download', methods=['POST', 'GET'])
 def download_results_book():
+
+    if not current_user.is_authenticated:
+        return redirect(url_for('login'))
+
     # Создаем новую книгу Excel
     wb = create_excel_results_book()
 
@@ -310,6 +324,10 @@ def download_results_book():
 
 @app.route('/api/download/<string:project_name>', methods=['POST', 'GET'])
 def download_results_page(project_name):
+
+    if not current_user.is_authenticated:
+        return redirect(url_for('login'))
+
     # Создаем новую книгу Excel
     wb = create_excel_result_page(project_name=project_name)
 

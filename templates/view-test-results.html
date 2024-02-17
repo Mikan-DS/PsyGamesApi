@@ -51,55 +51,65 @@
           {{ project }}
        </option>
     {% endfor %}
+    {% if not project_name %}
+       <option value="{{ url_for('psytest_view_results') }}" selected>
+          Проект не выбран или не существует
+       </option>
+    {% endif %}
     </select>
 
-<form action="{{ url_for("download_results_page", project_name=project_name) }}" method="post">
-    <button type="submit">Скачать результаты проекта</button>
-</form>
-
-{% if results %}
-
-  <form method="POST" action="{{ url_for('delete_results', project_name=project_name)}}" enctype="application/x-www-form-urlencoded">
-        {{ form.csrf_token }}
-      <h2>Проект {{ project_name }} <button type="submit" class="btn btn-danger">Удалить</button></h2>
+{% if project_name != None %}
 
 
-  <table>
-        <thead>
-          <tr>
-            <th></th>
-            <th>#</th>
-            <th>Имя</th>
-            <th>IP</th>
-            <th>Время отправки</th>
-            <th>Сколько времени заняло</th>
-            {% for parameter in projects[project_name] %}
-              <th>{{ parameter }}</th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for result in results %}
+    <form action="{{ url_for("download_results_page", project_name=project_name) }}" method="post">
+        <button type="submit">Скачать результаты проекта</button>
+    </form>
+
+    {% if results %}
+
+      <form method="POST" action="{{ url_for('delete_results', project_name=project_name)}}" enctype="application/x-www-form-urlencoded">
+            {{ form.csrf_token }}
+          <h2>Проект {{ project_name }} <button type="submit" class="btn btn-danger">Удалить</button></h2>
+
+
+      <table>
+            <thead>
               <tr>
-                <td><input type="checkbox" name="{{ result['id'] }}"></td>
-                <td>{{ loop.index }}</td>
-                <td>{{ result['name'] }}</td>
-                <td>{{ result['ip'] }}</td>
-                <td>{{ result['end_time'] }}</td>
-                <td>{{ result['duration'] }}</td>
-                {% for value in result['result_parameters'].values() %}
-                  <td>{{ value }}</td>
+                <th></th>
+                <th>#</th>
+                <th>Имя</th>
+                <th>IP</th>
+                <th>Время отправки</th>
+                <th>Сколько времени заняло</th>
+                {% for parameter in projects[project_name] %}
+                  <th>{{ parameter }}</th>
                 {% endfor %}
               </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {% for result in results %}
+                  <tr>
+                    <td><input type="checkbox" name="{{ result['id'] }}"></td>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ result['name'] }}</td>
+                    <td>{{ result['ip'] }}</td>
+                    <td>{{ result['end_time'] }}</td>
+                    <td>{{ result['duration'] }}</td>
+                    {% for value in result['result_parameters'].values() %}
+                      <td>{{ value }}</td>
+                    {% endfor %}
+                  </tr>
+              {% endfor %}
+            </tbody>
+          </table>
 
-  </form>
-{% else %}
-    <h1>
-    На данный момент нет данных по результатам по проекту {{ project_name }}
-    </h1>
+      </form>
+    {% else %}
+        <h1>
+        На данный момент нет данных по результатам по проекту {{ project_name }}
+        </h1>
+    {% endif %}
+
 {% endif %}
 
 </body>
