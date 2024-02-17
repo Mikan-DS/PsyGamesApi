@@ -267,9 +267,7 @@ def create_excel_result_page(wb: Workbook=None, project_name: str = None):
     # Создаем заголовки для столбцов
     headers = ['Имя', 'IP', 'Время отправки', 'Время прохождения']
     # Добавим заголовки для параметров
-    parameter_names = set()
-    parameter_names.update(projects[project_name])
-    headers.extend(sorted(parameter_names))
+    headers.extend(projects[project_name])
 
     sheet.freeze_panes = 'A2'
 
@@ -281,12 +279,18 @@ def create_excel_result_page(wb: Workbook=None, project_name: str = None):
 
     # Заполняем данные в таблице
     for row, test_result in enumerate(test_results, start=2):
-        data = [test_result.name, test_result.ip, test_result.end_time, str(datetime.timedelta(seconds=test_result.duration))]
-        data.extend(parameter.value for parameter in sorted(test_result.parameters, key=lambda p: p.name))
-        for col, value in enumerate(data, start=1):
-            sheet.cell(row=row, column=col, value=value)
-            if col == 4:
-                sheet.cell(row=row, column=col).number_format = 'HH:MM:SS'
+        data = test_result.as_dict()
+
+        sheet.cell(row=row, column=1, value=data["name"])
+        sheet.cell(row=row, column=2, value=data["ip"])
+        cell = sheet.cell(row=row, column=3, value=data["end_time"].strftime("%Y-%m-%d %H:%M:%S"))
+        cell.number_format = 'yyyy\\-mm\\-dd\\ h:mm:ss'
+        cell = sheet.cell(row=row, column=4, value=data["duration"])
+        cell.number_format = '[$-F400]h:mm:ss\\ AM/PM'
+        for col, header in enumerate(headers[4:], start=5):
+            cell = sheet.cell(row=row, column=col, value=data["result_parameters"][header])
+
+
 
     # Возвращаем страницу
     return wb
