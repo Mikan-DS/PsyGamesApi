@@ -95,8 +95,8 @@
                     <td>{{ result['ip'] }}</td>
                     <td>{{ result['end_time'] }}</td>
                     <td>{{ result['duration'] }}</td>
-                    {% for value in result['result_parameters'].values() %}
-                      <td>{{ value }}</td>
+                    {% for value in projects[project_name] %}
+                      <td>{{ result['result_parameters'][value] }}</td>
                     {% endfor %}
                   </tr>
               {% endfor %}
@@ -105,6 +105,25 @@
 
       </form>
     {% else %}
+
+           <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>#</th>
+                <th>Имя</th>
+                <th>IP</th>
+                <th>Время отправки</th>
+                <th>Сколько времени заняло</th>
+                {% for parameter in projects[project_name] %}
+                  <th>{{ parameter }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+
         <h1>
         На данный момент нет данных по результатам по проекту {{ project_name }}
         </h1>
